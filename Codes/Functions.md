@@ -56,7 +56,7 @@ int sum(int a, int b)
 
 3. 매개변수 리스트: 괄호로 묶고, 콤마로 구분한다. 0개 이상의 매개변수로 구성되며, 각 매개변수는 자료형을 지정해야 한다. 매개변수 이름은 선택적으로 지정할 수 있으며, 함수 내부에서 그 이름으로 접근할 수 있다.
 
-함수 선언의 선택적 부분들:
+### 함수 선언의 선택적 부분들:
 
 1. `constexpr`: 컴파일 시간에 계산될 수 있는 상수값이 함수의 반환값임을 지시한다.
 
@@ -78,3 +78,213 @@ constexpr float exp(float x, int n)
 extern "C" int printf(const char *fmt, ...);
 ```
 
+3. `inline`: 컴파일러에게 함수의 호출을 함수의 코드 자체로 대체할 것을 지시한다. 인라이닝은 코드에서 함수가 빨리 실행되어야 하거나 성능에 핵심적인 부분에서 반복적으로 호출될 때 성능을 향상시킬 수 있다.
+
+```C++
+inline double Account::GetBalance()
+{
+    return balance;
+}
+```
+
+4. `noexcept` 표현식: 함수가 예외를 던지는지를 지정한다. `noexcept`가 붙은 함수가 예외를 던지면 프로그램이 강제 종료된다. 
+- 기본 문법: `void foo() noexcept(condition);`
+
+
+```C++
+#include <type_traits> // std::is_pod 사용을 위해 필요
+
+template <typename T>
+T copy_object(T& obj) noexcept(std::is_pod<T>) {
+    // 함수 정의: POD 타입일 때만 noexcept 적용
+}
+```
+
+5. 함수가 `const`인지 `volatile`인지 지정하는 cv-한정자. 멤버함수만 해당.
+- `const` 한정자:
+    - 멤버 함수가 객체의 상태를 변경하지 않는다.
+    - `const` 멤버 함수는 객체의 멤버 변수 값을 수정하거나 가변적이지 않은 변수를 변경할 수 없다.
+    - `const` 객체에서 비-`const` 함수를 호출할 수 없다.
+- `volatile` 한정자:
+    - 멤버 함수가 `volatile` 객체에서 호출될 수 있음을 나타낸다.
+    - `volatile`은 객체가 외부 요인에 의해 변경될 수 있음을 의미한다.
+
+```C++
+class Example {
+public:
+    void regular_function();             // 일반 멤버 함수
+    void const_function() const;        // const 멤버 함수
+    void volatile_function() volatile;  // volatile 멤버 함수
+    void const_volatile_function() const volatile; // const와 volatile 동시 적용
+};
+```
+6. `virtual`, `override`, `final`
+- **`virtual`**: 파생 클래스에서 함수가 재정의될 수 있음을 지정한다.  
+- **`override`**: 파생 클래스에서 해당 함수가 기반 클래스의 `virtual` 함수를 재정의하고 있음을 명시한다.  
+- **`final`**: 함수가 더 이상 다른 파생 클래스에서 재정의될 수 없음을 지정한다.  
+
+```cpp
+#include <iostream>
+
+class Base {
+public:
+    virtual void show() const { // virtual로 선언
+        std::cout << "Base::show()" << std::endl;
+    }
+    virtual void info() const final { // final: 재정의 불가
+        std::cout << "Base::info()" << std::endl;
+    }
+};
+
+class Derived : public Base {
+public:
+    void show() const override { // override: Base의 show 재정의
+        std::cout << "Derived::show()" << std::endl;
+    }
+
+    // void info() const override; // 오류: info는 final로 선언됨.
+};
+
+int main() {
+    Base* basePtr = new Derived();
+    basePtr->show(); // Derived::show() 출력
+    basePtr->info(); // Base::info() 출력
+
+    delete basePtr;
+    return 0;
+}
+```
+
+7. `static` 멤버 함수
+- `static` 키워드를 멤버 함수에 적용하면, 해당 함수는 클래스의 객체 인스턴스와 연관되지 않는다.  
+  즉, 객체 없이도 호출할 수 있으며, 멤버 변수에 접근할 수 없다(단, `static` 멤버 변수에는 접근 가능).
+
+```cpp
+#include <iostream>
+
+class Math {
+public:
+    static int add(int a, int b) { // static 함수
+        return a + b;
+    }
+};
+
+int main() {
+    std::cout << "3 + 4 = " << Math::add(3, 4) << std::endl; // 객체 없이 호출 가능
+    return 0;
+}
+```
+
+8. `ref-qualifier`
+- **(비-정적 멤버 함수만 해당)**  
+  `ref-qualifier`는 컴파일러가 함수 오버로드 시 어떤 함수 버전을 선택할지 지정하는 데 사용된다.  
+  - **`&`**: 멤버 함수가 **lvalue** 참조로 호출될 때만 선택.  
+  - **`&&`**: 멤버 함수가 **rvalue** 참조로 호출될 때만 선택.
+
+```cpp
+#include <iostream>
+
+class Example {
+public:
+    void show() & { // lvalue 참조에서 호출
+        std::cout << "Called on lvalue" << std::endl;
+    }
+
+    void show() && { // rvalue 참조에서 호출
+        std::cout << "Called on rvalue" << std::endl;
+    }
+};
+
+int main() {
+    Example obj;
+    obj.show();       // "Called on lvalue"
+
+    Example().show(); // "Called on rvalue"
+    return 0;
+}
+```
+
+---
+
+## 함수에서 복수의 값 반환하기
+여러 방법이 있다.
+
+1. 값들을 클래스나 구조체 객체로 감싼다.
+- 호출 전에 클래스나 구조체 정의를 해야 한다.
+
+```cpp
+#include <string>
+#include <iostream>
+
+using namespace std;
+
+struct S
+{
+    string name;
+    int num;
+};
+
+S g()
+{
+    string t{ "hello" };
+    int u{ 42 };
+    return { t, u };
+}
+
+int main()
+{
+    S s = g();
+    cout << s.name << " " << s.num << endl;
+    return 0;
+}
+```
+
+2. `std::tuple`이나 `std::pair` 객체를 반환한다.
+
+```cpp
+#include <tuple>
+#include <string>
+#include <iostream>
+
+using namespace std;
+
+tuple<int, string, double> f()
+{
+    int i{ 108 };
+    string s{ "Some text" };
+    double d{ .01 };
+    return { i,s,d };
+}
+
+int main()
+{
+    auto t = f();
+    cout << get<0>(t) << " " << get<1>(t) << " " << get<2>(t) << endl;
+
+    // --or--
+
+    int myval;
+    string myname;
+    double mydecimal;
+    tie(myval, myname, mydecimal) = f();
+    cout << myval << " " << myname << " " << mydecimal << endl;
+
+    return 0;
+}
+```
+
+## 함수 포인터
+C++은 C 언어와 같은 방식의 함수 포인터를 지원한다. 하지만 더 자료형에 안전한 대체재가 함수 객체에 사용된다. 
+
+함수 포인터 자료형을 반환하는 함수를 선언한다면 함수 포인터 자료형의 별칭으로 `typedef`를 사용할 것이 권장된다. 예를 들어:
+
+```cpp
+typedef int (*fp)(int);
+fp myFunction(char* s);
+```
+만약 이렇게 되지 않는다면, 함수 선언을 위한 적절한 문법은 식별자를 함수명과 인수 리스트로 대체함으로써 함수 포인터를 위한 선언문 문법으로부터 추론되어야 할 수 있다.
+
+```cpp
+int (*myFunction(char* s))(int);
+```
+이는 바로 전의 `typedef`를 사용한 선언과 동치이다.
